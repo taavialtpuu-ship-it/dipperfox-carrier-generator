@@ -28,7 +28,7 @@ export default function PrivacyPage() {
       </p>
       <h2 className="mt-6 font-semibold text-navy">Third parties</h2>
       <p className="mt-2">
-        To identify machines and research specifications, your machine description and questions are processed by Anthropic (Claude API), which performs web searches. Do not include personal information in these texts. The tool is hosted on Railway (data stored in a PostgreSQL database).
+        To identify machines and research specifications, the machine make and model are sent to a web search service (Perplexity Search API, or Anthropic’s web search), and your machine description, the pages found and your questions are processed by Anthropic (Claude API). Do not include personal information in these texts. The tool is hosted on Railway (data stored in a PostgreSQL database).
       </p>
       <h2 className="mt-6 font-semibold text-navy">Your choices</h2>
       <p className="mt-2">
