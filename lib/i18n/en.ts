@@ -13,6 +13,7 @@ export const en = {
     help: "Help",
     privacy: "Privacy",
     testBanner: "Test environment — enquiries are stored for testing only.",
+    footer: "© 2026 Dipperfox. Built with Claude Code",
     units: { metric: "Metric", us: "US" },
   },
   landing: {
