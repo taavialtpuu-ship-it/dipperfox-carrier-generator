@@ -127,3 +127,18 @@ function hostOf(url: string): string | null {
     return null;
   }
 }
+
+/** Operator-forced refresh from /admin (ignores the 180-day freshness window). */
+export async function forceRefreshResearch(researchId: string): Promise<"refreshing" | "running" | "not_configured" | "budget_exhausted" | "not_found"> {
+  const row = await db().machineResearch.findUnique({ where: { id: researchId } });
+  if (!row) return "not_found";
+  if (!env.anthropicApiKey) return "not_configured";
+  const now = Date.now();
+  if ((row.status === "running" && row.startedAt && now - row.startedAt.getTime() < STUCK_MS) || (row.refreshStartedAt && now - row.refreshStartedAt.getTime() < STUCK_MS)) return "running";
+  const { hasBudget } = await import("./ai/budget");
+  if (!(await hasBudget(0.1))) return "budget_exhausted";
+  const isRefresh = row.status === "completed";
+  await db().machineResearch.update({ where: { id: row.id }, data: isRefresh ? { refreshStartedAt: new Date() } : { status: "running", startedAt: new Date(), error: null } });
+  void runResearch(row.id, { carrierType: row.carrierType, manufacturer: row.manufacturer, model: row.model, year: null }, { assessmentRef: "admin", visitorRef: "admin", isRefresh });
+  return "refreshing";
+}
