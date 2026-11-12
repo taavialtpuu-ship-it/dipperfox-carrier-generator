@@ -1,0 +1,330 @@
+// Dipperfox Carrier Generator — PostgreSQL schema.
+// Canonical units everywhere: t (1000 kg), kW, L/min, bar, kg, mm.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Anonymous visitors and assessments
+// ---------------------------------------------------------------------------
+
+model Visitor {
+  id          String       @id @default(uuid())
+  /// HMAC-SHA256 of the random session token; the raw token only lives in the HttpOnly cookie.
+  tokenHash   String       @unique
+  createdAt   DateTime     @default(now())
+  lastSeenAt  DateTime     @default(now())
+  expiresAt   DateTime
+  assessments Assessment[]
+}
+
+model Assessment {
+  id               String    @id @default(uuid())
+  visitorId        String
+  visitor          Visitor   @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  title            String
+  /// intake | identified | researching | gathering | result | enquiry
+  stage            String    @default("intake")
+  initialInput     String?
+  carrierType      String?
+  manufacturer     String?
+  model            String?
+  year             Int?
+  variant          String?
+  identityConfirmed Boolean  @default(false)
+  unitSystem       String    @default("metric")
+  /// Intended work (task suitability lens, non-binding).
+  intendedWork     String?
+  ruleSetVersion   String?
+  researchId       String?
+  research         MachineResearch? @relation(fields: [researchId], references: [id], onDelete: SetNull)
+  questionsAsked   Int       @default(0)
+  researchRuns     Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  specifications MachineSpecification[]
+  results        AssessmentResult[]
+  messages       ConversationMessage[]
+  leads          LeadEnquiry[]
+
+  @@index([visitorId, updatedAt])
+}
+
+/// One row per (assessment, field). Absence of a row = field not yet addressed.
+model MachineSpecification {
+  id               String     @id @default(uuid())
+  assessmentId     String
+  assessment       Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  field            String
+  /// user_entered | user_confirmed | marked_unknown
+  state            String
+  /// Unrounded canonical value for numeric fields.
+  valueCanonical   Float?
+  /// For choice/text fields (e.g. "yes" | "no" | "unknown", coupler type).
+  valueText        String?
+  /// Exactly what the user typed / what the source said, with its unit.
+  enteredValue     String?
+  enteredUnit      String?
+  /// user_entry | official_manual | official_site | dealer | other_web
+  origin           String
+  evidenceSourceId String?
+  evidenceSource   EvidenceSource? @relation(fields: [evidenceSourceId], references: [id], onDelete: SetNull)
+  configurationNote String?
+  updatedAt        DateTime   @updatedAt
+  createdAt        DateTime   @default(now())
+
+  @@unique([assessmentId, field])
+}
+
+// ---------------------------------------------------------------------------
+// Web research cache (shared across visitors) and evidence
+// ---------------------------------------------------------------------------
+
+model MachineResearch {
+  id           String    @id @default(uuid())
+  /// carrierType|manufacturer|model, normalised lowercase.
+  cacheKey     String    @unique
+  carrierType  String
+  manufacturer String
+  model        String
+  /// pending | running | completed | failed
+  status       String    @default("pending")
+  error        String?
+  summary      String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  /// When a background refresh was last attempted.
+  refreshStartedAt DateTime?
+  searchesUsed Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  candidates  SpecCandidate[]
+  sources     EvidenceSource[]
+  assessments Assessment[]
+}
+
+model EvidenceSource {
+  id          String    @id @default(uuid())
+  researchId  String?
+  research    MachineResearch? @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  /// official_manual | official_site | dealer | other_web | user_entry
+  origin      String
+  url         String?
+  title       String?
+  publisher   String?
+  locator     String?
+  excerpt     String?
+  retrievedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  candidates     SpecCandidate[]
+  specifications MachineSpecification[]
+}
+
+model SpecCandidate {
+  id               String          @id @default(uuid())
+  researchId       String
+  research         MachineResearch @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  field            String
+  valueCanonical   Float?
+  valueText        String?
+  originalValue    String
+  originalUnit     String?
+  /// What exactly the source says the value is (e.g. "auxiliary pump max output").
+  meaning          String?
+  /// Generation / year range / hydraulic package the value applies to, as stated by the source.
+  appliesTo        String?
+  confidence       String          @default("medium")
+  evidenceSourceId String?
+  evidenceSource   EvidenceSource? @relation(fields: [evidenceSourceId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+
+  @@index([researchId, field])
+}
+
+// ---------------------------------------------------------------------------
+// Dipperfox products and versioned requirements
+// ---------------------------------------------------------------------------
+
+model Product {
+  id                 String   @id
+  name               String
+  pageUrl            String
+  imagePath          String
+  cuttingDiameterMm  Float?
+  grindingDepthMm    Float?
+  massKg             Float?
+  torqueNm           Float?
+  suitability        String
+  sortOrder          Int      @default(0)
+  updatedAt          DateTime @updatedAt
+
+  requirements ProductRequirement[]
+  results      AssessmentResult[]
+}
+
+model ProductRuleSet {
+  version     String   @id
+  description String
+  /// draft | approved
+  kind        String
+  sourceDocument String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  requirements ProductRequirement[]
+}
+
+model ProductRequirement {
+  id              String    @id @default(uuid())
+  /// Stable import key; seeds never overwrite an existing key.
+  key             String    @unique
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  productRevision String?
+  carrierType     String
+  parameter       String
+  min             Float?
+  max             Float?
+  value           Float?
+  /// For enumerated requirements, e.g. accepted coupler types.
+  allowedValues   String[]
+  /// hard_limit | recommended_range | unclassified
+  ruleKind        String
+  unit            String
+  /// draft | conflicting | approved | superseded
+  status          String
+  /// Requirements from different sources that disagree share a conflict group.
+  conflictGroup   String?
+  sourceRef       String?
+  sourceUrl       String?
+  sourceTitle     String?
+  sourceRevision  String?
+  checkedAt       DateTime?
+  /// Documented remedy when the limit is not met (e.g. regulated setting, adapter).
+  remedyKind      String?
+  remedyDescription String?
+  remedySourceUrl String?
+  note            String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  ruleSetVersion  String
+  ruleSet         ProductRuleSet @relation(fields: [ruleSetVersion], references: [version])
+  supersededAt    DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([productId, carrierType, parameter, status])
+}
+
+// ---------------------------------------------------------------------------
+// Results, conversation, enquiries, analytics, AI usage
+// ---------------------------------------------------------------------------
+
+/// Latest evaluation per (assessment, product). Snapshots are kept on enquiries.
+model AssessmentResult {
+  id                String     @id @default(uuid())
+  assessmentId      String
+  assessment        Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product    @relation(fields: [productId], references: [id])
+  strictStatus      String
+  preliminaryStatus String
+  ruleSetVersion    String
+  engineVersion     String
+  checks            Json
+  reasons           Json
+  missing           Json
+  inputsSnapshot    Json
+  evaluatedAt       DateTime   @default(now())
+
+  @@unique([assessmentId, productId])
+}
+
+model ConversationMessage {
+  id           String     @id @default(uuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  /// user | assistant | system
+  role         String
+  /// machine_description | question | answer | note
+  kind         String
+  /// Stored with obvious emails / phone numbers redacted.
+  content      String
+  createdAt    DateTime   @default(now())
+
+  @@index([assessmentId, createdAt])
+}
+
+model LeadEnquiry {
+  id             String      @id @default(uuid())
+  assessmentId   String?
+  assessment     Assessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  /// quote | technical_verification | question
+  enquiryType    String
+  name           String
+  email          String
+  country        String
+  company        String?
+  phone          String?
+  message        String?
+  privacyAcceptedAt DateTime
+  privacyNoticeVersion String
+  /// Full assessment snapshot, provenance and rule versions at submission time (CRM-ready).
+  snapshot       Json
+  /// new | reviewed | exported
+  status         String      @default("new")
+  appEnv         String
+  createdAt      DateTime    @default(now())
+
+  @@index([createdAt])
+}
+
+model AnalyticsEvent {
+  id            String   @id @default(uuid())
+  createdAt     DateTime @default(now())
+  schemaVersion Int      @default(1)
+  name          String
+  /// Pseudonymous refs (no FK so events survive assessment deletion).
+  visitorRef    String?
+  assessmentRef String?
+  stage         String?
+  carrierType   String?
+  manufacturer  String?
+  model         String?
+  fieldKey      String?
+  productId     String?
+  status        String?
+  props         Json?
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+
+  @@index([name, createdAt])
+  @@index([assessmentRef])
+}
+
+model AiUsage {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  /// UTC date YYYY-MM-DD for budget aggregation.
+  day          String
+  purpose      String
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  webSearches  Int      @default(0)
+  costUsd      Float    @default(0)
+  assessmentRef String?
+  ok           Boolean  @default(true)
+
+  @@index([day])
+}

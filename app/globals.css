@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/*
+ * Dipperfox design tokens — sampled from dipperfox.com on 2026-11-12.
+ * See docs/DESIGN_SYSTEM.md for provenance.
+ */
+@theme {
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+
+  --color-navy: #000061;        /* primary brand navy (site headings, buttons) */
+  --color-navy-deep: #030336;   /* footer / deep backgrounds */
+  --color-navy-600: #000072;
+  --color-navy-mist: #8d92ba;   /* muted navy text on dark */
+  --color-orange: #ff812c;      /* logo + accent */
+  --color-orange-600: #e8691a;
+  --color-ink: #1e1e1e;         /* body text */
+  --color-slate: #3b3c46;       /* secondary text */
+  --color-surface: #f7f7f7;     /* page background */
+  --color-ice: #ebf3f5;         /* light accent background */
+  --color-line: #dcdcdc;        /* borders */
+
+  /* Status (always paired with icon + words) */
+  --color-status-within: #1f4e9c;
+  --color-status-within-bg: #e8effa;
+  --color-status-outside: #4b4d57;
+  --color-status-outside-bg: #ececef;
+  --color-status-open: #8a5300;
+  --color-status-open-bg: #fff3df;
+  --color-status-fail: #a3261b;
+  --color-status-fail-bg: #fdecea;
+  --color-status-pass: #1d6b3a;
+  --color-status-pass-bg: #e7f4ec;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
