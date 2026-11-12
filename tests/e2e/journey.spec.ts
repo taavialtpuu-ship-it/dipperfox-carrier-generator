@@ -76,3 +76,19 @@ test("admin exports require login", async ({ request }) => {
   const r = await request.get("/api/admin/export/leads.csv");
   expect([401, 503]).toContain(r.status());
 });
+
+test("description is used once: no re-asking of machine or stated values", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Which machine would you like to use with Dipperfox?").fill("I have a 2021 CAT 308 excavator, 8.4 t and 52 kW");
+  await page.getByRole("button", { name: "Start" }).click();
+  await page.waitForURL(/\/assessment\//);
+  if (page.viewportSize()!.width < 1024) await page.getByRole("tab", { name: "Your machine" }).click();
+  // Identity understood and confirmed from the user's own words — no form to fill again.
+  await expect(page.getByText("Caterpillar 308 (2021)")).toBeVisible();
+  await expect(page.getByLabel("Manufacturer")).toHaveCount(0);
+  // Stated values are saved, so the questions about them are not asked again.
+  const nq = page.locator("#next-question, [aria-live=polite]").first();
+  await expect(nq).toBeVisible();
+  await expect(page.locator("#next-question")).not.toContainText("operating weight");
+  await expect(page.locator("#next-question")).not.toContainText("engine power");
+});

@@ -2,7 +2,9 @@ import { anthropicGuide } from "@/lib/ai/anthropic";
 import { buildGuideContext } from "@/lib/ai/context";
 import { AiUnavailableError } from "@/lib/ai/types";
 import { track } from "@/lib/analytics";
-import { loadOwned, loadRequirements, requirementToDTO, toDTO, toProfile } from "@/lib/assessments";
+import { evaluateAndPersist, loadOwned, loadRequirements, requirementToDTO, toDTO, toProfile } from "@/lib/assessments";
+import { describeSaved, saveStatedSpecs } from "@/lib/intake/apply";
+import { parseSpecs } from "@/lib/intake/parse";
 import { evaluate } from "@/lib/compatibility/engine";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -20,7 +22,23 @@ export const POST = handler(async (req: Request, { params }: Ctx) => {
   const visitor = await requireVisitor();
   rateLimit(`ask:${visitor.id}`, 5, 60_000);
   const { text } = await parseBody(req, questionSchema);
-  const a = await loadOwned(visitor.id, id);
+  let a = await loadOwned(visitor.id, id);
+
+  // Statements like "it has 140 l/min at 250 bar" are saved as answers (free, no AI).
+  const stated = parseSpecs(text);
+  const isQuestion = /\?\s*$/.test(text.trim()) || /^(what|why|how|which|can|could|does|do|is|are|will|would|should|where|when)\b/i.test(text.trim());
+  if (stated.length && !isQuestion) {
+    const clean = redactPII(text);
+    await db().conversationMessage.create({ data: { assessmentId: id, role: "user", kind: "statement", content: clean } });
+    const saved = await saveStatedSpecs(a, stated, visitor.id, { overwrite: true, note: "From your message" });
+    await db().conversationMessage.create({
+      data: { assessmentId: id, role: "assistant", kind: "answer", content: saved.length ? `Saved: ${describeSaved(saved)}. The comparison has been updated.` : "Those values were already saved." },
+    });
+    a = await loadOwned(visitor.id, id);
+    await evaluateAndPersist(a, visitor.id);
+    return json(await toDTO(await loadOwned(visitor.id, id)));
+  }
+
   if (a.questionsAsked >= env.maxQuestionsPerAssessment)
     throw new HttpError(429, "question_limit", "You have reached the question limit for this assessment. Please use the enquiry form to ask Dipperfox directly.");
 

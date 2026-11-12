@@ -12,7 +12,8 @@ import { nextStep } from "@/lib/guide";
 import { t } from "@/lib/i18n/en";
 import type { UnitSystem } from "@/lib/units";
 import { HistoryDrawer } from "./history-drawer";
-import { FieldInput, type SpecAction } from "./machine/field-input";
+import { type SpecAction } from "./machine/field-input";
+import { QuestionCard } from "./machine/question-card";
 import { IdentityForm } from "./machine/identity-form";
 import { SpecList } from "./machine/spec-list";
 import { Comparison } from "./product/comparison";
@@ -20,7 +21,7 @@ import { ResearchPanel } from "./research/research-panel";
 import { AskBox } from "./research/ask-box";
 import { EnquirySection } from "./enquiry/enquiry-section";
 import { TopBar } from "./top-bar";
-import { Button, Card, ErrorNote, Explain, Spinner } from "./ui";
+import { Button, Card, ErrorNote, Spinner } from "./ui";
 
 function toProfile(a: AssessmentDTO): MachineProfile {
   const specs: MachineProfile["specs"] = {};
@@ -201,7 +202,8 @@ export function Workspace({ id }: { id: string }) {
   }
 
   const profile = toProfile(a);
-  const step = focusField ? ({ kind: "field", field: focusField, answered: 0, total: 0 } as const) : nextStep(profile, skipped);
+  const researchRunning = a.research?.status === "running";
+  const step = focusField ? ({ kind: "field", field: focusField, answered: 0, total: 0 } as const) : nextStep(profile, skipped, { researchRunning });
   const specMap = new Map(a.specs.map((s) => [s.field, s]));
   const mutationError = (patch.error || spec.error) as Error | null;
 
@@ -242,34 +244,49 @@ export function Workspace({ id }: { id: string }) {
           {a.identityConfirmed && <ResearchPanel a={a} units={units} onData={setData} onConfirm={(candidateId) => spec.mutate({ action: "confirm_candidate", candidateId })} onEdit={(f) => onAsk(f)} busy={spec.isPending} />}
 
           {a.identityConfirmed && step.kind === "field" && (
-            <Card id="next-question" className="border-navy/30 p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-orange">{t.spec.nextQuestion}</p>
-              <h3 className="mt-1 font-semibold text-navy">{t.fields[step.field].question}</h3>
-              <div className="mt-1">
-                <Explain label={t.spec.explain} text={t.fields[step.field].help} />
-              </div>
-              <div className="mt-3">
-                <FieldInput key={step.field} field={step.field} spec={specMap.get(step.field)} units={units} busy={spec.isPending} onAction={(x) => spec.mutate(x)} />
-              </div>
-              <button
-                className="mt-3 text-xs text-slate underline-offset-2 hover:underline"
-                onClick={() => {
-                  setSkipped((s) => [...s, step.field]);
-                  setFocusField(null);
-                }}
-              >
-                {t.spec.skip}
+            <QuestionCard
+              a={a}
+              field={step.field}
+              spec={specMap.get(step.field)}
+              units={units}
+              busy={spec.isPending}
+              onAction={(x) => spec.mutate(x)}
+              onConfirm={(candidateId) => spec.mutate({ action: "confirm_candidate", candidateId })}
+              onSkip={() => {
+                setSkipped((s) => [...s, step.field]);
+                setFocusField(null);
+              }}
+            />
+          )}
+          {a.identityConfirmed && step.kind === "waiting_research" && (
+            <p className="rounded-lg bg-ice px-4 py-3 text-sm text-slate" aria-live="polite">
+              The remaining questions depend on the published specifications we are reading now — they will appear here with the values found.{" "}
+              <button className="font-medium text-navy underline" onClick={() => setFocusField("operating_weight_t")}>
+                Enter them myself instead
               </button>
-            </Card>
+            </p>
           )}
           {a.identityConfirmed && step.kind === "done" && <p className="rounded-lg bg-ice px-4 py-3 text-sm text-slate">{t.spec.allAnswered}</p>}
           {mutationError && <ErrorNote message={mutationError.message} />}
           {spec.isPending && <Spinner label="Recalculating…" />}
 
           {a.identityConfirmed && (
-            <Card className="p-4">
-              <h3 className="font-semibold text-navy">{t.spec.allFields}</h3>
-              <SpecList a={a} units={units} busyField={spec.isPending ? (spec.variables && "field" in spec.variables ? spec.variables.field : null) : null} onAction={(x) => spec.mutate(x)} />
+            <Card className="p-0">
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-semibold text-navy">
+                  <span>
+                    {t.spec.allFields}{" "}
+                    <span className="text-sm font-normal text-slate">
+                      ({a.specs.length} of {step.kind === "field" || step.kind === "done" || step.kind === "waiting_research" ? step.total || "…" : "…"} answered)
+                    </span>
+                  </span>
+                  <span className="text-sm font-normal text-navy group-open:hidden">Review / edit</span>
+                  <span className="hidden text-sm font-normal text-navy group-open:inline">Hide</span>
+                </summary>
+                <div className="px-4 pb-2">
+                  <SpecList a={a} units={units} busyField={spec.isPending ? (spec.variables && "field" in spec.variables ? spec.variables.field : null) : null} onAction={(x) => spec.mutate(x)} />
+                </div>
+              </details>
             </Card>
           )}
           {a.identityConfirmed && <AskBox a={a} onData={setData} />}

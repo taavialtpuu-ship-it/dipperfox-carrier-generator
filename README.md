@@ -2,13 +2,13 @@
 
 Public web app that helps owners of excavators, backhoe loaders, skid steers and compact loaders find out whether a **Dipperfox SC 400, SC 600 or SC 850 Pro** stump grinder may fit their machine.
 
-A visitor describes the machine → confirms the identity → the app searches the manufacturer’s published specifications (with real citations) → the visitor confirms or enters values → a **deterministic** engine compares the machine with Dipperfox’s published reference figures live → optional enquiry saved for Dipperfox.
+A visitor describes the machine in their own words (make, model, type and any stated values are understood without AI and never asked again) → confirms the identity if needed → the app searches the manufacturer’s published specifications (with real citations) → the visitor confirms or enters values → a **deterministic** engine compares the machine with Dipperfox’s published reference figures live → optional enquiry saved for Dipperfox.
 
 > Dipperfox reference data is version 0.1 and **not yet approved by the manufacturer**. The app therefore shows a *preliminary comparison* and keeps the verified result “pending manufacturer approval”. See `docs/COMPATIBILITY_RULES.md`.
 
 ## Stack
 
-Next.js 16 (App Router, TypeScript) · Tailwind CSS 4 · TanStack Query · Prisma 7 + Railway PostgreSQL · Anthropic Claude API (Haiku 5.5 parsing, Sonnet 5.5 + web search/fetch research) · Vitest · Playwright · Railway.
+Next.js 16 (App Router, TypeScript) · Tailwind CSS 4 · TanStack Query · Prisma 7 + Railway PostgreSQL · Perplexity Search API (web search) · Anthropic Claude API (Haiku 5.5 parsing, Sonnet 5.5 reading of found pages; Claude web search as fallback) · Vitest · Playwright · Railway.
 
 ## Structure
 

@@ -8,6 +8,7 @@ import { env } from "./env";
 import { isCoreComplete, nextStep } from "./guide";
 import { notFound } from "./http";
 import { track } from "./analytics";
+import { researchConfigured } from "./research";
 import type { Prisma } from "./generated/prisma/client";
 
 export const assessmentInclude = {
@@ -182,7 +183,7 @@ export async function toDTO(a: AssessmentFull): Promise<AssessmentDTO> {
     next: nextStep(profile),
     capabilities: {
       ai: !!env.anthropicApiKey,
-      research: !!env.anthropicApiKey && (!r || r.status !== "running") && refreshMs > 0,
+      research: researchConfigured() && (!r || r.status !== "running") && refreshMs > 0,
       questionsRemaining: Math.max(0, env.maxQuestionsPerAssessment - a.questionsAsked),
     },
   };

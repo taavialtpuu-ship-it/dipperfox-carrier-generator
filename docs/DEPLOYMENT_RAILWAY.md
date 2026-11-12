@@ -18,6 +18,9 @@ The app deploys automatically from `main` (GitHub-linked Railway service). There
 | `APP_ENV` | yes | `test` now; `production` at launch |
 | `SESSION_SECRET` | yes | 32+ random bytes (`node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`) |
 | `ANTHROPIC_API_KEY` | for AI | Separate key for this app; set a monthly spend limit (agreed: $10) in the Anthropic Console |
+| `PERPLEXITY_API_KEY` | for web search | Perplexity Search API key. Perplexity finds pages; Claude reads them (so `ANTHROPIC_API_KEY` is still needed). Without it, Claude’s own web search is used |
+| `WEB_SEARCH_PROVIDER` | no | `perplexity` or `anthropic` (default: perplexity when its key is set) |
+| `PERPLEXITY_SEARCH_USD` | no | default `0.005` per search request (budget estimate) |
 | `ADMIN_PASSWORD` | for /admin | 12+ characters; set it yourself in the dashboard |
 | `AI_DAILY_BUDGET_USD` | no | default `0.30` |
 | `AI_MAX_SEARCHES_PER_RESEARCH` | no | default `5` |

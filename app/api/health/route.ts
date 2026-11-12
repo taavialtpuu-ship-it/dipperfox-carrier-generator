@@ -25,6 +25,7 @@ export async function GET() {
     database,
     integrations: {
       ai: env.anthropicApiKey ? "configured" : "not_configured",
+      webSearch: env.webSearchProvider === "perplexity" ? (env.perplexityApiKey ? "perplexity" : "perplexity_not_configured") : env.anthropicApiKey ? "anthropic" : "not_configured",
       sessionSecret: env.sessionSecret ? "configured" : "not_configured",
       admin: env.adminPassword && env.sessionSecret ? "configured" : "not_configured",
       email: "not_in_mvp",

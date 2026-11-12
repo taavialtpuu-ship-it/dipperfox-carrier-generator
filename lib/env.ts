@@ -21,6 +21,24 @@ export const env = {
   get anthropicApiKey() {
     return process.env.ANTHROPIC_API_KEY ?? "";
   },
+  get perplexityApiKey() {
+    return process.env.PERPLEXITY_API_KEY ?? "";
+  },
+  /**
+   * Web search provider for machine research: "perplexity" (Perplexity Search API +
+   * Claude extraction) or "anthropic" (Claude web_search/web_fetch). Default: perplexity
+   * when PERPLEXITY_API_KEY is set, otherwise anthropic.
+   */
+  get webSearchProvider(): "perplexity" | "anthropic" {
+    const v = (process.env.WEB_SEARCH_PROVIDER ?? "").toLowerCase();
+    if (v === "anthropic") return "anthropic";
+    if (v === "perplexity") return "perplexity";
+    return this.perplexityApiKey ? "perplexity" : "anthropic";
+  },
+  /** Estimated USD per Perplexity Search API request (for the daily budget). */
+  get perplexitySearchUsd() {
+    return num(process.env.PERPLEXITY_SEARCH_USD, 0.005);
+  },
   /** Daily AI spend ceiling enforced by the app (USD). */
   get aiDailyBudgetUsd() {
     return num(process.env.AI_DAILY_BUDGET_USD, 0.3);

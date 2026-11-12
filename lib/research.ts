@@ -1,5 +1,6 @@
 import "server-only";
 import { anthropicResearchProvider } from "./ai/anthropic";
+import { perplexityResearchProvider } from "./ai/perplexity";
 import { AiUnavailableError } from "./ai/types";
 import { groundCandidates, normUrl } from "./research-grounding";
 import { track } from "./analytics";
@@ -17,9 +18,11 @@ export function researchCacheKey(carrierType: string, manufacturer: string, mode
 /** Run research for a cache row and store the results. Never throws. */
 async function runResearch(researchId: string, machine: { carrierType: string; manufacturer: string; model: string; year: number | null }, ctx: { assessmentRef: string; visitorRef: string; isRefresh: boolean }) {
   const common = { visitorRef: ctx.visitorRef, assessmentRef: ctx.assessmentRef, carrierType: machine.carrierType, manufacturer: machine.manufacturer, model: machine.model };
-  await track("web_research_started", { ...common, props: { refresh: ctx.isRefresh } });
+  const providerName = env.webSearchProvider;
+  const provider = providerName === "perplexity" ? perplexityResearchProvider : anthropicResearchProvider;
+  await track("web_research_started", { ...common, props: { refresh: ctx.isRefresh, provider: providerName } });
   try {
-    const { output, retrieved, searches } = await anthropicResearchProvider.research(machine, { assessmentRef: ctx.assessmentRef });
+    const { output, retrieved, searches } = await provider.research(machine, { assessmentRef: ctx.assessmentRef });
     const { accepted, rejected } = groundCandidates(output, retrieved);
     if (rejected.length) log.warn("research_candidates_rejected", { researchId, rejected });
     await db().$transaction(async (tx) => {
@@ -55,7 +58,7 @@ async function runResearch(researchId: string, machine: { carrierType: string; m
         data: { status: "completed", error: null, summary: output.summary.slice(0, 1000), completedAt: new Date(), searchesUsed: searches },
       });
     });
-    await track("web_research_completed", { ...common, props: { candidates: accepted.length, rejected: rejected.length, searches, fields: [...new Set(accepted.map((a) => a.field))] } });
+    await track("web_research_completed", { ...common, props: { provider: providerName, candidates: accepted.length, rejected: rejected.length, searches, fields: [...new Set(accepted.map((a) => a.field))] } });
     for (const a of accepted) await track("spec_candidate_found", { ...common, fieldKey: a.field, props: { origin: a.source.origin, host: hostOf(a.source.url) } });
   } catch (e) {
     const reason = e instanceof AiUnavailableError ? e.reason : "provider_error";
@@ -110,7 +113,7 @@ export async function startResearch(
     await db().assessment.update({ where: { id: assessment.id }, data: { researchId: null } });
     return reason;
   };
-  if (!env.anthropicApiKey) return cannot("not_configured");
+  if (!researchConfigured()) return cannot("not_configured");
   if (assessment.researchRuns >= 3 && !opts.force) return cannot("limit_reached");
 
   const { hasBudget } = await import("./ai/budget");
@@ -139,7 +142,7 @@ function hostOf(url: string): string | null {
 export async function forceRefreshResearch(researchId: string): Promise<"refreshing" | "running" | "not_configured" | "budget_exhausted" | "not_found"> {
   const row = await db().machineResearch.findUnique({ where: { id: researchId } });
   if (!row) return "not_found";
-  if (!env.anthropicApiKey) return "not_configured";
+  if (!researchConfigured()) return "not_configured";
   const now = Date.now();
   if ((row.status === "running" && row.startedAt && now - row.startedAt.getTime() < STUCK_MS) || (row.refreshStartedAt && now - row.refreshStartedAt.getTime() < STUCK_MS)) return "running";
   const { hasBudget } = await import("./ai/budget");
@@ -148,4 +151,10 @@ export async function forceRefreshResearch(researchId: string): Promise<"refresh
   await db().machineResearch.update({ where: { id: row.id }, data: isRefresh ? { refreshStartedAt: new Date() } : { status: "running", startedAt: new Date(), error: null } });
   void runResearch(row.id, { carrierType: row.carrierType, manufacturer: row.manufacturer, model: row.model, year: null }, { assessmentRef: "admin", visitorRef: "admin", isRefresh });
   return "refreshing";
+}
+
+/** Research needs Claude (reading/extraction) plus the selected search provider's key. */
+export function researchConfigured(): boolean {
+  if (!env.anthropicApiKey) return false;
+  return env.webSearchProvider === "perplexity" ? !!env.perplexityApiKey : true;
 }

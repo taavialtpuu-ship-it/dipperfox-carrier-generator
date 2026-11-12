@@ -99,7 +99,7 @@ export function ResearchPanel({
     <Card className="space-y-3 p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold text-navy">
-          <Globe className="size-4" aria-hidden /> Found online — please confirm
+          <Globe className="size-4" aria-hidden /> Published specifications
         </h3>
         <span className="text-xs text-slate">
           {r.refreshing ? (
@@ -115,7 +115,17 @@ export function ResearchPanel({
         Published figures describe the model in general. They may not match your machine’s year, serial range, hydraulic package or options. Confirm only what matches your machine.
       </p>
       {r.summary && <p className="text-xs text-slate">{r.summary}</p>}
-      {byField.size === 0 && <p className="text-sm text-slate">No reliable published values were found. Please enter the values from your documentation or dealer.</p>}
+      {byField.size === 0 ? (
+        <p className="text-sm text-slate">No reliable published values were found. Please enter the values from your documentation or dealer.</p>
+      ) : (
+        <p className="text-sm text-slate">
+          Found {visible.length} published value{visible.length === 1 ? "" : "s"} from {r.sources.length} source{r.sources.length === 1 ? "" : "s"}. They are offered with the matching questions below.
+        </p>
+      )}
+      {byField.size > 0 && (
+        <details>
+          <summary className="cursor-pointer text-sm font-medium text-navy">See all values and sources</summary>
+          <div className="mt-3 space-y-3">
       <ul className="space-y-3">
         {[...byField.entries()].map(([field, list]) => {
           const current = specs.get(field);
@@ -171,9 +181,13 @@ export function ResearchPanel({
           );
         })}
       </ul>
-      <p className="text-xs text-slate">
-        Hydraulic flow and pressure published for a model are usually pump or system figures. What reaches the attachment under load can be lower — please confirm with your dealer if unsure.
-      </p>
+            <p className="text-xs text-slate">
+              Hydraulic flow and pressure published for a model are usually pump or system figures. What reaches the attachment under load can be lower — please confirm with your dealer if unsure.
+            </p>
+          </div>
+        </details>
+      )}
+
     </Card>
   );
 }

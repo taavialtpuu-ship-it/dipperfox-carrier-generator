@@ -37,8 +37,10 @@ export async function recordUsage(u: {
   webSearches?: number;
   assessmentRef?: string | null;
   ok?: boolean;
+  /** Explicit cost for non-token-priced calls (e.g. Perplexity Search requests). */
+  costUsd?: number;
 }): Promise<number> {
-  const cost = estimateCost(u.model, u.inputTokens, u.outputTokens, u.webSearches ?? 0);
+  const cost = u.costUsd ?? estimateCost(u.model, u.inputTokens, u.outputTokens, u.webSearches ?? 0);
   try {
     await db().aiUsage.create({
       data: {

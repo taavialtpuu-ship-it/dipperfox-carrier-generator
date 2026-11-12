@@ -16,12 +16,12 @@ export function AskBox({ a, onData }: { a: AssessmentDTO; onData: (a: Assessment
       setText("");
     },
   });
-  const qa = a.messages.filter((m) => m.kind === "question" || m.kind === "answer");
+  const qa = a.messages.filter((m) => m.kind === "question" || m.kind === "answer" || m.kind === "statement");
   const remaining = a.capabilities.questionsRemaining;
   return (
     <Card className="space-y-3 p-4">
       <h3 className="flex items-center gap-2 font-semibold text-navy">
-        <MessageCircleQuestion className="size-4" aria-hidden /> Ask a question
+        <MessageCircleQuestion className="size-4" aria-hidden /> Add details or ask a question
       </h3>
       {qa.length > 0 && (
         <ul className="space-y-2" aria-live="polite">
@@ -32,8 +32,7 @@ export function AskBox({ a, onData }: { a: AssessmentDTO; onData: (a: Assessment
           ))}
         </ul>
       )}
-      {remaining > 0 ? (
-        <form
+      <form
           className="flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
@@ -41,25 +40,23 @@ export function AskBox({ a, onData }: { a: AssessmentDTO; onData: (a: Assessment
           }}
         >
           <label htmlFor="ask" className="sr-only">
-            Your question
+            Add details or ask a question
           </label>
           <input
             id="ask"
             value={text}
             maxLength={600}
             onChange={(e) => setText(e.target.value)}
-            placeholder="e.g. What is a case drain line?"
+            placeholder="e.g. “It has 140 l/min at 250 bar” or “What is a case drain?”"
             className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm"
           />
-          <Button type="submit" variant="navy" busy={ask.isPending} aria-label="Send question">
+          <Button type="submit" variant="navy" busy={ask.isPending} aria-label="Send">
             <Send className="size-4" aria-hidden />
           </Button>
         </form>
-      ) : (
-        <p className="text-xs text-slate">Question limit reached for this assessment. You can send further questions to Dipperfox with the enquiry form.</p>
-      )}
+      {remaining === 0 && <p className="text-xs text-slate">Question limit reached for this assessment — you can still add details, or send questions to Dipperfox with the enquiry form.</p>}
       <p className="text-xs text-slate">
-        {remaining} question{remaining === 1 ? "" : "s"} left. Answers use only this assessment’s data and are not an installation approval. Please don’t include personal details.
+        Values you state (with units) are saved straight away. {remaining} question{remaining === 1 ? "" : "s"} left; answers use only this assessment’s data and are not an installation approval. Please don’t include personal details.
       </p>
       {ask.error && <ErrorNote message={(ask.error as Error).message} />}
     </Card>
