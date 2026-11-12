@@ -17,9 +17,9 @@ const TITLES: Record<EnquiryType, string> = {
 };
 
 /** Optional enquiry. Results are always visible without giving contact details. */
-export function EnquirySection({ a }: { a: AssessmentDTO; units: UnitSystem; onData: (a: AssessmentDTO) => void }) {
+export function EnquirySection({ a, onData }: { a: AssessmentDTO; units: UnitSystem; onData: (a: AssessmentDTO) => void }) {
   const [open, setOpen] = useState<EnquiryType | null>(null);
-  const [done, setDone] = useState(false);
+  const [another, setAnother] = useState(false);
   const ev = a.evaluation;
   const supported = ev.products.some((p) => p.preliminary.status === "within_range" || p.strict.status === "compatible" || p.strict.status === "conditional");
   const allIncompatible = ev.allIncompatible;
@@ -29,13 +29,20 @@ export function EnquirySection({ a }: { a: AssessmentDTO; units: UnitSystem; onD
     endpoints.event({ name: "lead_form_opened", assessmentId: a.id });
   };
 
-  if (done)
+  if (!a.identityConfirmed) return null;
+
+  if (a.enquiry && !another)
     return (
       <Card className="flex gap-3 p-4" role="status">
         <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-status-pass" aria-hidden />
-        <div className="text-sm">
+        <div className="flex-1 text-sm">
           <p className="font-semibold text-navy">Your enquiry and assessment have been saved.</p>
-          <p className="text-slate">The Dipperfox team will review it and contact you by email.</p>
+          <p className="text-slate">
+            Sent {new Date(a.enquiry.submittedAt).toLocaleString()}. The Dipperfox team will review it and contact you by email.
+          </p>
+          <button className="mt-1 text-xs text-navy underline" onClick={() => setAnother(true)}>
+            Send another enquiry
+          </button>
         </div>
       </Card>
     );
@@ -76,7 +83,18 @@ export function EnquirySection({ a }: { a: AssessmentDTO; units: UnitSystem; onD
           )}
         </div>
       )}
-      {open && <LeadForm a={a} type={open} onCancel={() => setOpen(null)} onDone={() => setDone(true)} />}
+      {open && (
+        <LeadForm
+          a={a}
+          type={open}
+          onCancel={() => setOpen(null)}
+          onDone={async () => {
+            setOpen(null);
+            setAnother(false);
+            onData(await endpoints.get(a.id));
+          }}
+        />
+      )}
     </Card>
   );
 }

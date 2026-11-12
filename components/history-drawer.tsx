@@ -13,6 +13,7 @@ export function HistoryDrawer({ open, onClose, currentId }: { open: boolean; onC
   const list = useQuery({ queryKey: ["assessments"], queryFn: endpoints.list, enabled: open });
   const [renaming, setRenaming] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [confirming, setConfirming] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -97,10 +98,22 @@ export function HistoryDrawer({ open, onClose, currentId }: { open: boolean; onC
                     <button
                       className="rounded p-1 text-status-fail hover:bg-status-fail-bg"
                       aria-label={`${t.history.delete} ${a.title}`}
-                      onClick={() => window.confirm(t.history.confirmDelete) && remove.mutate(a.id)}
+                      aria-expanded={confirming === a.id}
+                      onClick={() => setConfirming(confirming === a.id ? null : a.id)}
                     >
                       <Trash2 className="size-4" />
                     </button>
+                  </div>
+                )}
+                {confirming === a.id && (
+                  <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-status-fail-bg px-3 py-2 text-xs text-status-fail">
+                    <span className="flex-1">{t.history.confirmDelete}</span>
+                    <Button size="sm" variant="danger" busy={remove.isPending} onClick={() => remove.mutate(a.id, { onSuccess: () => setConfirming(null) })}>
+                      {t.history.delete}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirming(null)}>
+                      Cancel
+                    </Button>
                   </div>
                 )}
               </li>

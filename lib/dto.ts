@@ -81,6 +81,8 @@ export interface AssessmentDTO extends AssessmentSummaryDTO {
   research: ResearchDTO | null;
   messages: MessageDTO[];
   next: NextStep;
+  /** Latest enquiry sent for this assessment (no contact details). */
+  enquiry: { submittedAt: string; type: string } | null;
   capabilities: { ai: boolean; research: boolean; questionsRemaining: number };
 }
 

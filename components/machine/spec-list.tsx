@@ -5,7 +5,7 @@ import { type CarrierType, type FieldKey, FIELDS, fieldsFor } from "@/lib/domain
 import type { AssessmentDTO, SpecDTO } from "@/lib/dto";
 import { endpoints } from "@/lib/client/api";
 import { t } from "@/lib/i18n/en";
-import { type UnitSystem, formatCanonical } from "@/lib/units";
+import { type UnitSystem, findUnit, formatCanonical } from "@/lib/units";
 import { Explain } from "../ui";
 import { FieldInput, type SpecAction } from "./field-input";
 
@@ -37,7 +37,7 @@ export function SpecList({ a, units, onAction, busyField }: { a: AssessmentDTO; 
                   {specValueText(s, units)}
                   {showOriginal && (
                     <span className="ml-2 text-xs text-slate">
-                      ({t.spec.original}: {s!.enteredValue} {s!.enteredUnit})
+                      ({t.spec.original}: {s!.enteredValue} {findUnit(f.dimension!, s!.enteredUnit!)?.label ?? s!.enteredUnit})
                     </span>
                   )}
                 </p>

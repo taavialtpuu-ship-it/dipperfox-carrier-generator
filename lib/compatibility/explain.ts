@@ -39,6 +39,10 @@ export function preliminaryReasons(p: ProductEvaluation, units: UnitSystem): str
     out.push(`${label(c)}: ${actualText(c, units)} fits one Dipperfox source but not another (${uniq(pub(c)).join(" vs ")}).`);
   for (const c of p.preliminary.checks.filter((x) => x.outcome === "above_check_adjustable"))
     out.push(`${label(c)}: ${actualText(c, units)} is above the published range — tell us whether it can be adjusted.`);
+  // Positive facts are worth showing even when the overall headline is still open.
+  if (p.preliminary.status !== "within_range")
+    for (const c of p.preliminary.checks.filter((x) => x.outcome === "within"))
+      out.push(`${label(c)}: ${actualText(c, units)} is within the published ${uniq(pub(c)).join(" / ")}.`);
   const missing = p.preliminary.checks.filter((x) => x.outcome === "missing");
   if (missing.length) out.push(`Still needed: ${missing.map(label).join(", ").toLowerCase()}.`);
   if (p.preliminary.comparedOnly.length === 0) out.push("Dipperfox has not published reference figures for this carrier type.");

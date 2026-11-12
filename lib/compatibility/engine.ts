@@ -306,9 +306,10 @@ function prelimRange(
   adjustableField?: FieldKey,
 ): PrelimCheck {
   const refs = reqsFor(ctx.reqs, ctx.productId, ctx.carrierType, parameter, PRELIM_STATUSES);
-  const base: PrelimCheck = { key, outcome: "no_data", field, dimension, actual: null, references: refs.map(toRef), notes: [] };
-  if (refs.length === 0) return base;
   const spec: SpecValue | undefined = ctx.specs[field];
+  const known = isVerified(spec) && spec.valueCanonical != null ? spec.valueCanonical : null;
+  const base: PrelimCheck = { key, outcome: "no_data", field, dimension, actual: known, references: refs.map(toRef), notes: [] };
+  if (refs.length === 0) return base;
   if (!isVerified(spec) || spec.valueCanonical == null) return { ...base, outcome: "missing" };
   const v = spec.valueCanonical;
   const positions = refs.map((r) => inRange(v, r));

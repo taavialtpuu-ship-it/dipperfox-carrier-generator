@@ -14,6 +14,7 @@ import type { Prisma } from "./generated/prisma/client";
 export const assessmentInclude = {
   specifications: { include: { evidenceSource: true }, orderBy: { createdAt: "asc" } },
   messages: { orderBy: { createdAt: "asc" }, take: 200 },
+  leads: { select: { createdAt: true, enquiryType: true }, orderBy: { createdAt: "desc" }, take: 1 },
   research: {
     include: {
       candidates: { include: { evidenceSource: true }, orderBy: { createdAt: "asc" } },
@@ -181,6 +182,7 @@ export async function toDTO(a: AssessmentFull): Promise<AssessmentDTO> {
       : null,
     messages: a.messages.map((m) => ({ id: m.id, role: m.role as "user" | "assistant" | "system", kind: m.kind, content: m.content, createdAt: m.createdAt.toISOString() })),
     next: nextStep(profile),
+    enquiry: a.leads[0] ? { submittedAt: a.leads[0].createdAt.toISOString(), type: a.leads[0].enquiryType } : null,
     capabilities: {
       ai: !!env.anthropicApiKey,
       research: researchConfigured() && (!r || r.status !== "running") && refreshMs > 0,

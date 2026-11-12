@@ -5,6 +5,7 @@ import { track } from "@/lib/analytics";
 import { evaluateAndPersist, loadOwned, loadRequirements, requirementToDTO, toDTO, toProfile } from "@/lib/assessments";
 import { describeSaved, saveStatedSpecs } from "@/lib/intake/apply";
 import { parseSpecs } from "@/lib/intake/parse";
+import { glossaryAnswer, matchGlossary } from "@/lib/intake/glossary";
 import { evaluate } from "@/lib/compatibility/engine";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -39,20 +40,26 @@ export const POST = handler(async (req: Request, { params }: Ctx) => {
     return json(await toDTO(await loadOwned(visitor.id, id)));
   }
 
-  if (a.questionsAsked >= env.maxQuestionsPerAssessment)
-    throw new HttpError(429, "question_limit", "You have reached the question limit for this assessment. Please use the enquiry form to ask Dipperfox directly.");
-
   const clean = redactPII(text);
-  await db().$transaction([
-    db().conversationMessage.create({ data: { assessmentId: id, role: "user", kind: "question", content: clean } }),
-    db().assessment.update({ where: { id }, data: { questionsAsked: { increment: 1 } } }),
-  ]);
-
   let answer: string;
   let answered = false;
-  if (!env.anthropicApiKey) {
-    answer = "Answers are not available right now. Your question has been saved — you can also send it to Dipperfox with the enquiry form.";
+  let source: "glossary" | "ai" | "none" = "none";
+
+  // Term questions ("What is a case drain?") get the built-in explanation: free, instant, no quota.
+  const term = matchGlossary(text);
+  if (term) {
+    answer = glossaryAnswer(term);
+    answered = true;
+    source = "glossary";
+    await db().conversationMessage.create({ data: { assessmentId: id, role: "user", kind: "question", content: clean } });
+  } else if (!env.anthropicApiKey) {
+    // No AI: keep the question for Dipperfox, but don't use up the visitor's question allowance.
+    answer = "I can't answer that automatically right now. Your question has been saved — you can also send it to Dipperfox with the enquiry form.";
+    await db().conversationMessage.create({ data: { assessmentId: id, role: "user", kind: "question", content: clean } });
   } else {
+    if (a.questionsAsked >= env.maxQuestionsPerAssessment)
+      throw new HttpError(429, "question_limit", "You have reached the question limit for this assessment. Please use the enquiry form to ask Dipperfox directly.");
+    await db().conversationMessage.create({ data: { assessmentId: id, role: "user", kind: "question", content: clean } });
     try {
       const profile = toProfile(a);
       const reqs = await loadRequirements();
@@ -63,6 +70,9 @@ export const POST = handler(async (req: Request, { params }: Ctx) => {
       });
       answer = await anthropicGuide.answer(clean, context, { assessmentRef: id });
       answered = true;
+      source = "ai";
+      // Only answered AI questions count towards the per-assessment limit.
+      await db().assessment.update({ where: { id }, data: { questionsAsked: { increment: 1 } } });
     } catch (e) {
       answer = e instanceof AiUnavailableError && e.reason !== "provider_error" ? e.message : "Answers are temporarily unavailable. Your question has been saved — you can also send it to Dipperfox with the enquiry form.";
     }
@@ -75,7 +85,7 @@ export const POST = handler(async (req: Request, { params }: Ctx) => {
     carrierType: a.carrierType,
     manufacturer: a.manufacturer,
     model: a.model,
-    props: { answered, length: text.length },
+    props: { answered, source, length: text.length },
   });
   return json(await toDTO(await loadOwned(visitor.id, id)));
 });

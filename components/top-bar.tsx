@@ -51,7 +51,7 @@ export function TopBar({
             <ShieldCheck className="size-4" aria-hidden />
             {t.app.privacy}
           </Link>
-          <button onClick={onNew} className="flex items-center gap-1.5 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600">
+          <button onClick={onNew} aria-label={t.app.newAssessment} className="flex items-center gap-1.5 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600">
             <Plus className="size-4" aria-hidden />
             <span className="hidden sm:inline">{t.app.newAssessment}</span>
           </button>

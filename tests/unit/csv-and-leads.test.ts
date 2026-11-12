@@ -42,6 +42,7 @@ describe("lead snapshot", () => {
       research: null,
       messages: [],
       next: { kind: "done", answered: 13, total: 13 },
+      enquiry: null,
       capabilities: { ai: false, research: false, questionsRemaining: 5 },
     } as AssessmentDTO;
     const s = buildLeadSnapshot(dto, "test");

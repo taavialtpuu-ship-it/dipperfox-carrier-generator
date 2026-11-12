@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { EXPORTS } from "@/lib/exports";
 import { AdminLogin, AdminLogout, ReResearchButton } from "./admin-client";
+import { SimpleHeader } from "@/components/simple-header";
 
 export const metadata = { title: "Admin — Dipperfox Carrier Generator", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -11,6 +12,15 @@ export const dynamic = "force-dynamic";
 type Snap = { results?: { productId: string; preliminaryLabel: string }[]; bestCandidate?: string | null };
 
 export default async function AdminPage() {
+  return (
+    <>
+      <SimpleHeader />
+      {await AdminContent()}
+    </>
+  );
+}
+
+async function AdminContent() {
   if (!adminConfigured())
     return (
       <main className="mx-auto max-w-lg flex-1 p-10 text-sm">

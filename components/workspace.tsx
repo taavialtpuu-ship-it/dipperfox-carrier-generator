@@ -236,7 +236,7 @@ export function Workspace({ id }: { id: string }) {
             .slice(-1)
             .map((m) => (
               <p key={m.id} className="max-w-[90%] rounded-2xl rounded-bl-sm bg-white px-4 py-2 text-sm text-ink shadow-sm">
-                {m.content}
+                {a.identityConfirmed ? m.content.replace(" Please confirm or complete it below.", "").replace(" Please confirm or complete it below", "") : m.content}
               </p>
             ))}
           <IdentityForm key={`${a.carrierType}-${a.manufacturer}-${a.model}-${a.identityConfirmed}`} a={a} onSave={(b) => patch.mutate(b)} busy={patch.isPending} error={patch.error ? (patch.error as Error).message : null} />
@@ -245,6 +245,7 @@ export function Workspace({ id }: { id: string }) {
 
           {a.identityConfirmed && step.kind === "field" && (
             <QuestionCard
+              key={step.field}
               a={a}
               field={step.field}
               spec={specMap.get(step.field)}

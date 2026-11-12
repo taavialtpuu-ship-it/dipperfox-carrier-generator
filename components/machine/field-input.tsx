@@ -60,12 +60,13 @@ export function FieldInput({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder={t.spec.enterValue}
+              aria-label={t.fields[field].label}
               className="w-full min-w-0 rounded-l-lg bg-transparent px-3 py-2 text-sm outline-none"
             />
             <label htmlFor={`${id}-u`} className="sr-only">
               Unit
             </label>
-            <select id={`${id}-u`} value={unit} onChange={(e) => setUnit(e.target.value)} className="rounded-r-lg border-l border-line bg-surface px-2 text-sm">
+            <select id={`${id}-u`} aria-label={`${t.fields[field].label} unit`} value={unit} onChange={(e) => setUnit(e.target.value)} className="rounded-r-lg border-l border-line bg-surface px-2 text-sm">
               {UNITS[def.dimension].map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.label}

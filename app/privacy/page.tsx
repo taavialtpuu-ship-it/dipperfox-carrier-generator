@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { SimpleHeader } from "@/components/simple-header";
 
 export const metadata = { title: "Privacy — Dipperfox Carrier Generator" };
 
 export default function PrivacyPage() {
   return (
+    <>
+    <SimpleHeader />
     <main className="mx-auto max-w-2xl flex-1 px-4 py-10 text-sm leading-relaxed text-ink">
       <Link href="/" className="text-navy underline">
         ← Back to the Carrier Generator
@@ -38,5 +41,6 @@ export default function PrivacyPage() {
       <h2 className="mt-6 font-semibold text-navy">Important</h2>
       <p className="mt-2">Results are preliminary guidance, not a manufacturer-approved installation sign-off.</p>
     </main>
+    </>
   );
 }
