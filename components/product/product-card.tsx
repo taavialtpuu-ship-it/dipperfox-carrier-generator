@@ -16,16 +16,19 @@ export function ProductCard({
   units,
   best,
   onAsk,
+  awaitingMachine,
 }: {
   product: ProductDTO;
   ev: ProductEvaluation;
   units: UnitSystem;
   best: boolean;
   onAsk?: (field: string) => void;
+  /** No machine identified yet: show a neutral prompt instead of carrier-type wording. */
+  awaitingMachine?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const id = useId();
-  const reasons = preliminaryReasons(ev, units);
+  const reasons = awaitingMachine ? ["Tell us about your machine to start the comparison."] : preliminaryReasons(ev, units);
   const strictPending = ev.strict.checks.find((c) => c.key === "carrier_type_rules")?.outcome !== "pass";
   return (
     <article className={clsx("flex flex-col rounded-xl border bg-white", best ? "border-navy shadow-[0_0_0_1px_var(--color-navy)]" : "border-line")} aria-labelledby={`${id}-name`}>

@@ -133,7 +133,7 @@ export function Workspace({ id }: { id: string }) {
     // Poll only while background research is running.
     refetchInterval: (query) => {
       const r = query.state.data?.research;
-      return r && (r.status === "running" || r.status === "pending" || r.refreshing) ? 3000 : false;
+      return r && (r.status === "running" || r.refreshing) ? 3000 : false;
     },
   });
   const a = q.data;

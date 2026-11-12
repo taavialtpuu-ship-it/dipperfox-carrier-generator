@@ -50,7 +50,7 @@ export function ResearchPanel({
   const r = a.research;
   const specs = new Map(a.specs.map((s) => [s.field, s]));
 
-  if (!r) {
+  if (!r || r.status === "pending") {
     if (!a.capabilities.ai) return <p className="rounded-lg bg-ice px-4 py-3 text-sm text-slate">Automatic research is not available right now — please enter the values from your machine’s documentation or ask your dealer.</p>;
     return (
       <Card className="flex flex-wrap items-center gap-3 p-4">
@@ -65,7 +65,7 @@ export function ResearchPanel({
     );
   }
 
-  if (r.status === "running" || r.status === "pending")
+  if (r.status === "running")
     return (
       <Card className="p-4" aria-live="polite">
         <p className="flex items-center gap-2 text-sm font-medium text-navy">

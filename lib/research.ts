@@ -103,11 +103,18 @@ export async function startResearch(
     await track("web_research_cache_hit", { ...ctx, carrierType: machine.carrierType, manufacturer: machine.manufacturer, model: machine.model });
     return "cache_hit";
   }
-  if (!env.anthropicApiKey) return row.status === "completed" ? "cache_hit" : "not_configured";
-  if (assessment.researchRuns >= 3 && !opts.force) return "limit_reached";
+  // Cannot search now: keep usable cached data attached, otherwise detach so the UI
+  // never shows a search that is not actually happening.
+  const cannot = async (reason: StartResearchResult): Promise<StartResearchResult> => {
+    if (row!.status === "completed") return "cache_hit";
+    await db().assessment.update({ where: { id: assessment.id }, data: { researchId: null } });
+    return reason;
+  };
+  if (!env.anthropicApiKey) return cannot("not_configured");
+  if (assessment.researchRuns >= 3 && !opts.force) return cannot("limit_reached");
 
   const { hasBudget } = await import("./ai/budget");
-  if (!(await hasBudget(0.1))) return row.status === "completed" ? "cache_hit" : "budget_exhausted";
+  if (!(await hasBudget(0.1))) return cannot("budget_exhausted");
 
   const isRefresh = row.status === "completed";
   await db().machineResearch.update({

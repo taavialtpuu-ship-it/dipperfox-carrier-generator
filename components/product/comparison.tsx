@@ -94,7 +94,7 @@ export function Comparison({
             {catalog.products.map((p) => {
               const pe = ev.products.find((x) => x.productId === p.id);
               if (!pe) return null;
-              return <ProductCard key={p.id} product={p} ev={pe} units={units} best={ev.bestCandidate === p.id} onAsk={onAsk} />;
+              return <ProductCard key={p.id} product={p} ev={pe} units={units} best={ev.bestCandidate === p.id} onAsk={onAsk} awaitingMachine={!a.identityConfirmed || !a.carrierType} />;
             })}
           </div>
           {footer}
