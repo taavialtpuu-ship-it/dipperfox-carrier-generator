@@ -4,10 +4,18 @@ import { env } from "@/lib/env";
 /** Railway healthcheck. 200 when the app can reach PostgreSQL. */
 export async function GET() {
   const started = Date.now();
-  let database: "ok" | "unavailable" | "not_configured" = "ok";
+  let database: "ok" | "unavailable" | "not_configured" | "schema_missing" | "not_seeded" = "ok";
   try {
     if (!env.databaseUrl) database = "not_configured";
-    else await db().$queryRaw`SELECT 1`;
+    else {
+      await db().$queryRaw`SELECT 1`;
+      // Ready only when migrations ran and the Dipperfox product data is seeded.
+      try {
+        if ((await db().product.count()) < 3) database = "not_seeded";
+      } catch {
+        database = "schema_missing";
+      }
+    }
   } catch {
     database = "unavailable";
   }

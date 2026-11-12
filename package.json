@@ -13,7 +13,8 @@
     "e2e": "playwright test",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "predeploy": "prisma migrate deploy && tsx prisma/seed.ts"
+    "predeploy": "prisma migrate deploy && tsx prisma/seed.ts",
+    "start:railway": "prisma migrate deploy && tsx prisma/seed.ts && next start"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

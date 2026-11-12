@@ -5,9 +5,10 @@ The app deploys automatically from `main` (GitHub-linked Railway service). There
 ## What runs on each deploy (`railway.json`)
 
 1. **Build:** `npm run build` (= `prisma generate && next build`).
-2. **Pre-deploy:** `npm run predeploy` = `prisma migrate deploy` (committed migrations only, never `migrate dev`) + `tsx prisma/seed.ts` (idempotent; never modifies approved records; imports new approved rule files).
-3. **Start:** `npm start` (`next start`, listens on Railway’s `PORT`).
-4. **Healthcheck:** `GET /api/health` → 200 when PostgreSQL answers.
+2. **Start:** `npm run start:railway` = `prisma migrate deploy` (committed migrations only, never `migrate dev`) → `tsx prisma/seed.ts` (idempotent; never modifies approved records; imports new approved rule files) → `next start` (listens on Railway’s `PORT`). Migrations run at start because Railway’s pre-deploy step was found not to run for this service (2026-11-12). If migrate or seed fails, the app does not start and the deploy fails visibly.
+3. **Healthcheck:** `GET /api/health` → 200 only when PostgreSQL answers **and** the schema exists and the three products are seeded.
+
+> Railway’s Config as Code (`railway.json`) is deprecated and stops working on **2026-12-01**. Migrate with `railway config migrate` (dry-run first), then `railway config migrate cutover`.
 
 ## Service variables
 
