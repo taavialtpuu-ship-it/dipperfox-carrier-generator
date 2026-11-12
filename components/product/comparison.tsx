@@ -43,7 +43,7 @@ export function Comparison({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-bold text-navy">
             {a.manufacturer || a.model ? `${a.manufacturer ?? ""} ${a.model ?? ""}`.trim() : t.identity.title}
-            {a.year ? <span className="ml-2 text-sm font-normal text-slate">{a.year}</span> : null}
+            {a.year ? <span className="ml-2 text-sm font-normal text-slate"> {a.year}</span> : null}
           </h2>
           <span className="text-xs text-slate">{a.carrierType ? t.carrierTypes[a.carrierType as CarrierType] : "—"}</span>
         </div>

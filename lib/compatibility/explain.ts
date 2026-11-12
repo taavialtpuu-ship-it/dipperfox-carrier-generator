@@ -12,6 +12,16 @@ export function refText(r: RefRange, check: { dimension: PrelimCheck["dimension"
   return r.sourceRef ? `${v} (${r.sourceRef})` : v;
 }
 
+/** Same range from several sources → one entry: "1–5 t (S5, S6) / 1.5–5 t (S1)". */
+export function groupedRefs(refs: RefRange[], check: { dimension: PrelimCheck["dimension"] | null }, units: UnitSystem): string[] {
+  const groups = new Map<string, string[]>();
+  for (const r of refs) {
+    const v = refText({ ...r, sourceRef: null }, check, units);
+    groups.set(v, [...(groups.get(v) ?? []), ...(r.sourceRef ? [r.sourceRef] : [])]);
+  }
+  return [...groups.entries()].map(([v, s]) => (s.length ? `${v} (${[...new Set(s)].sort().join(", ")})` : v));
+}
+
 export function actualText(c: { actual: number | string | null; dimension: PrelimCheck["dimension"] | null }, units: UnitSystem): string {
   if (c.actual == null) return "—";
   if (typeof c.actual === "string") return t.options[c.actual] ?? c.actual;
@@ -22,7 +32,7 @@ export function actualText(c: { actual: number | string | null; dimension: Preli
 export function preliminaryReasons(p: ProductEvaluation, units: UnitSystem): string[] {
   const out: string[] = [];
   const label = (c: PrelimCheck) => t.checks[c.key];
-  const pub = (c: PrelimCheck) => c.references.map((r) => refText(r, c, units));
+  const pub = (c: PrelimCheck) => groupedRefs(c.references, c, units);
   for (const c of p.preliminary.checks.filter((x) => x.outcome === "outside"))
     out.push(`${label(c)}: ${actualText(c, units)} is outside the published ${uniq(pub(c)).join(" / ")}.`);
   for (const c of p.preliminary.checks.filter((x) => x.outcome === "sources_disagree"))

@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { ChevronDown, ExternalLink, Star } from "lucide-react";
 import Image from "next/image";
 import { useId, useState } from "react";
-import { actualText, preliminaryReasons, refText, strictReason } from "@/lib/compatibility/explain";
+import { actualText, groupedRefs, preliminaryReasons, strictReason } from "@/lib/compatibility/explain";
 import type { ProductEvaluation } from "@/lib/compatibility/types";
 import type { ProductDTO } from "@/lib/dto";
 import { t } from "@/lib/i18n/en";
@@ -104,8 +104,8 @@ export function ProductCard({
                   <div className="min-w-0">
                     <p className="font-medium">{t.checks[c.key]}</p>
                     <p className="text-xs text-slate">
-                      {t.card.yourValue}: {actualText(c, units)} · {t.card.published}: {c.references.length ? c.references.map((r) => refText(r, c, units)).join(" / ") : "—"}
-                      {c.context?.length ? ` · range ${c.context.map((r) => refText(r, c, units)).join(" / ")}` : ""}
+                      {t.card.yourValue}: {actualText(c, units)} · {t.card.published}: {c.references.length ? groupedRefs(c.references, c, units).join(" / ") : "—"}
+                      {c.context?.length ? ` · range ${groupedRefs(c.context, c, units).join(" / ")}` : ""}
                     </p>
                     <p className="text-xs">{t.prelim[c.outcome]}</p>
                     {c.notes.map((n) => (
