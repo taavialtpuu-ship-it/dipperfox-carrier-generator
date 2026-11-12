@@ -2,7 +2,9 @@ import { track } from "@/lib/analytics";
 import { evaluateAndPersist, loadOwned, toDTO } from "@/lib/assessments";
 import { db } from "@/lib/db";
 import { handler, json, parseBody } from "@/lib/http";
+import { log } from "@/lib/log";
 import { rateLimit } from "@/lib/rate-limit";
+import { startResearch } from "@/lib/research";
 import { requireVisitor } from "@/lib/session";
 import { patchAssessmentSchema } from "@/lib/validation";
 
@@ -59,6 +61,13 @@ export const PATCH = handler(async (req: Request, { params }: Ctx) => {
   if (body.unitSystem !== undefined && body.unitSystem !== a.unitSystem) await track("unit_system_changed", { ...common, props: { to: body.unitSystem } });
 
   if (identityChanged || body.identityConfirmed !== undefined) await evaluateAndPersist(updated, visitor.id);
+  // Research starts only after the user confirms the identity (cache first, web only if needed).
+  if (body.identityConfirmed === true && updated.carrierType && updated.manufacturer && updated.model) {
+    await startResearch(
+      { id, carrierType: updated.carrierType, manufacturer: updated.manufacturer, model: updated.model, year: updated.year, researchRuns: updated.researchRuns },
+      visitor.id,
+    ).catch((e) => log.error("research_start_failed", { msg: e instanceof Error ? e.message : String(e) }));
+  }
   return json(await toDTO(await loadOwned(visitor.id, id)));
 });
 

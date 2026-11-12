@@ -127,7 +127,15 @@ export function Workspace({ id }: { id: string }) {
   const [skipped, setSkipped] = useState<FieldKey[]>([]);
   const [focusField, setFocusField] = useState<FieldKey | null>(null);
   const catalog = useQuery({ queryKey: ["catalog"], queryFn: endpoints.catalog });
-  const q = useQuery({ queryKey: ["assessment", id], queryFn: () => endpoints.get(id) });
+  const q = useQuery({
+    queryKey: ["assessment", id],
+    queryFn: () => endpoints.get(id),
+    // Poll only while background research is running.
+    refetchInterval: (query) => {
+      const r = query.state.data?.research;
+      return r && (r.status === "running" || r.status === "pending" || r.refreshing) ? 3000 : false;
+    },
+  });
   const a = q.data;
   const units: UnitSystem = a?.unitSystem ?? "metric";
 
@@ -221,9 +229,17 @@ export function Workspace({ id }: { id: string }) {
               <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-navy px-4 py-2 text-sm text-white">{a.initialInput}</p>
             </div>
           )}
+          {a.messages
+            .filter((m) => m.kind === "note")
+            .slice(-1)
+            .map((m) => (
+              <p key={m.id} className="max-w-[90%] rounded-2xl rounded-bl-sm bg-white px-4 py-2 text-sm text-ink shadow-sm">
+                {m.content}
+              </p>
+            ))}
           <IdentityForm key={`${a.carrierType}-${a.manufacturer}-${a.model}-${a.identityConfirmed}`} a={a} onSave={(b) => patch.mutate(b)} busy={patch.isPending} error={patch.error ? (patch.error as Error).message : null} />
 
-          {a.identityConfirmed && <ResearchPanel a={a} units={units} onData={setData} onConfirm={(candidateId) => spec.mutate({ action: "confirm_candidate", candidateId })} busy={spec.isPending} />}
+          {a.identityConfirmed && <ResearchPanel a={a} units={units} onData={setData} onConfirm={(candidateId) => spec.mutate({ action: "confirm_candidate", candidateId })} onEdit={(f) => onAsk(f)} busy={spec.isPending} />}
 
           {a.identityConfirmed && step.kind === "field" && (
             <Card id="next-question" className="border-navy/30 p-4 shadow-sm">
