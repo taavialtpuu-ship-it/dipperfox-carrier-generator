@@ -1,0 +1,38 @@
+{
+  "ruleSetVersion": "approved-2027-01-15-sc600",
+  "description": "EXAMPLE ONLY — do not copy values. SC 600 excavator requirements approved by Dipperfox engineering.",
+  "approvedBy": "Name of responsible engineer",
+  "approvedAt": "2027-01-15",
+  "sourceDocument": "SC 600 installation manual, revision B",
+  "requirements": [
+    {
+      "productId": "sc600",
+      "productRevision": "B",
+      "carrierType": "excavator",
+      "parameter": "aux_flow_lpm",
+      "min": 0,
+      "max": 0,
+      "ruleKind": "hard_limit",
+      "unit": "L/min",
+      "sourceUrl": "https://www.dipperfox.com/path-to-manual.pdf",
+      "sourceTitle": "SC 600 installation manual",
+      "sourceRevision": "B",
+      "checkedAt": "2027-01-10",
+      "remedyKind": "regulated_setting",
+      "remedyDescription": "Limit auxiliary flow to the approved maximum as described in manual §4.2.",
+      "remedySourceUrl": "https://www.dipperfox.com/path-to-manual.pdf"
+    },
+    {
+      "productId": "sc600",
+      "carrierType": "excavator",
+      "parameter": "case_drain_required",
+      "value": 1,
+      "ruleKind": "hard_limit",
+      "unit": "bool",
+      "sourceUrl": "https://www.dipperfox.com/path-to-manual.pdf",
+      "sourceTitle": "SC 600 installation manual",
+      "sourceRevision": "B",
+      "checkedAt": "2027-01-10"
+    }
+  ]
+}
